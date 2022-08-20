@@ -1,5 +1,5 @@
 from .model import GPT
-from .dataset import NameDataset
+from .dataset import NameDataset, CharCorruptionDataset
 from .trainer import Trainer, TrainerConfig
 
 import torch
@@ -71,12 +71,19 @@ def finetune(reading_params_path, finetune_corpus_path, pretrain_dataset, block_
     trainer_obj = None  # Trainer object (see trainer.py for more details)
     tconf = None  # TrainerConfig object (see trainer.py for more details)
     ### START CODE HERE
-    # text = open(finetune_corpus_path, 'r').read()
-    # train_dataset = NameDataset(text, block_size)  # name data set
+
+    # corruption_dataset = CharCorruptionDataset(open('./../data/wiki.txt', encoding='utf-8').read(), 128)
+    # # Make the name dataset
+    # name_dataset = NameDataset(open('./../data/birth_places_train.tsv', encoding='utf-8').read(),
+    #                            corruption_dataset)
+    # for _, example in zip(range(name_dataset.__len__()), name_dataset):
+    #     x, y = example
+    birthplacedata = open(finetune_corpus_path, 'r').read()
+    train_dataset = NameDataset(birthplacedata, pretrain_dataset)  # name data set
     tconf = TrainerConfig(max_epochs=75, batch_size=256, learning_rate=6e-4,
                           lr_decay=True, warmup_tokens=512 * 20, final_tokens=200 * len(pretrain_dataset) * block_size,
                           num_workers=4)
-    trainer_obj = Trainer(model, pretrain_dataset, None, tconf)
+    trainer_obj = Trainer(model, train_dataset, None, tconf)
     ### END CODE HERE
     return tconf, trainer_obj
 
@@ -115,6 +122,7 @@ def train(model, writing_params_path, trainer_obj):
     ### Note: trainer_obj is of type Trainer (see trainer.py for more details)
 
     ### START CODE HERE
+    trainer_obj.config.ckpt_path = writing_params_path
     trainer_obj.train()
     ### END CODE HERE
     return
